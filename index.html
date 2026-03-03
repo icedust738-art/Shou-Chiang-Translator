@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shou-Chiang Translator</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1008;
+    --parchment: #f5ecd7;
+    --parchment-dark: #ede0c4;
+    --parchment-deep: #d4c09a;
+    --gold: #9a7228;
+    --gold-bright: #c49a3c;
+    --gold-dim: #7a5a20;
+    --rust: #8b3a1a;
+    --shadow: rgba(20,10,0,0.18);
+  }
+
+- { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+font-family: ‘EB Garamond’, Georgia, serif;
+background: #2a1a08;
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 40px 20px;
+background-image:
+radial-gradient(ellipse at 20% 20%, #3d2510 0%, transparent 60%),
+radial-gradient(ellipse at 80% 80%, #1a0d05 0%, transparent 60%);
+}
+
+/* Noise texture overlay */
+body::before {
+content: ‘’;
+position: fixed;
+inset: 0;
+background-image: url(“data:image/svg+xml,%3Csvg viewBox=‘0 0 256 256’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cfilter id=‘noise’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.9’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3C/filter%3E%3Crect width=‘100%25’ height=‘100%25’ filter=‘url(%23noise)’ opacity=‘0.04’/%3E%3C/svg%3E”);
+pointer-events: none;
+z-index: 0;
+}
+
+.container {
+position: relative;
+z-index: 1;
+width: 100%;
+max-width: 820px;
+}
+
+/* Header */
+.header {
+text-align: center;
+margin-bottom: 36px;
+animation: fadeDown 0.8s ease both;
+}
+
+.header-ornament {
+color: var(–gold);
+font-size: 13px;
+letter-spacing: 14px;
+margin-bottom: 10px;
+opacity: 0.7;
+}
+
+.header h1 {
+font-family: ‘Cinzel’, serif;
+font-size: clamp(28px, 5vw, 46px);
+font-weight: 700;
+color: var(–gold-bright);
+letter-spacing: 6px;
+text-transform: uppercase;
+line-height: 1.1;
+text-shadow: 0 2px 20px rgba(196,154,60,0.3);
+}
+
+.header-sub {
+font-family: ‘EB Garamond’, serif;
+font-style: italic;
+color: var(–parchment-deep);
+font-size: 15px;
+margin-top: 8px;
+letter-spacing: 2px;
+opacity: 0.8;
+}
+
+.header-line {
+width: 200px;
+height: 1px;
+background: linear-gradient(to right, transparent, var(–gold), transparent);
+margin: 14px auto 0;
+}
+
+/* Main card */
+.card {
+background: var(–parchment);
+border-radius: 4px;
+padding: 36px 40px;
+box-shadow:
+0 4px 60px rgba(0,0,0,0.6),
+0 0 0 1px var(–gold-dim),
+inset 0 0 80px rgba(212,192,154,0.3);
+background-image:
+radial-gradient(ellipse at 10% 10%, rgba(255,245,220,0.6) 0%, transparent 50%),
+radial-gradient(ellipse at 90% 90%, rgba(200,170,110,0.3) 0%, transparent 50%);
+position: relative;
+animation: fadeUp 0.8s ease 0.1s both;
+}
+
+.card::before, .card::after {
+content: ‘✦’;
+position: absolute;
+color: var(–gold-dim);
+font-size: 11px;
+opacity: 0.5;
+}
+.card::before { top: 12px; left: 16px; }
+.card::after  { bottom: 12px; right: 16px; }
+
+/* Mode tabs */
+.mode-tabs {
+display: flex;
+gap: 0;
+margin-bottom: 28px;
+border-bottom: 1px solid var(–parchment-deep);
+}
+
+.mode-tab {
+font-family: ‘Cinzel’, serif;
+font-size: 11px;
+letter-spacing: 2px;
+text-transform: uppercase;
+padding: 8px 20px;
+cursor: pointer;
+color: var(–gold-dim);
+border: none;
+background: none;
+border-bottom: 2px solid transparent;
+margin-bottom: -1px;
+transition: all 0.2s;
+}
+
+.mode-tab:hover { color: var(–gold); }
+.mode-tab.active {
+color: var(–gold);
+border-bottom-color: var(–gold);
+}
+
+/* Search area */
+.search-area { margin-bottom: 24px; }
+
+.search-label {
+font-family: ‘Cinzel’, serif;
+font-size: 10px;
+letter-spacing: 3px;
+text-transform: uppercase;
+color: var(–gold-dim);
+display: block;
+margin-bottom: 8px;
+}
+
+.search-row {
+display: flex;
+gap: 10px;
+}
+
+.search-input {
+flex: 1;
+background: rgba(255,250,235,0.8);
+border: 1px solid var(–parchment-deep);
+border-radius: 2px;
+padding: 11px 16px;
+font-family: ‘EB Garamond’, serif;
+font-size: 17px;
+color: var(–ink);
+outline: none;
+transition: border-color 0.2s, box-shadow 0.2s;
+box-shadow: inset 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.search-input:focus {
+border-color: var(–gold);
+box-shadow: inset 0 1px 4px rgba(0,0,0,0.08), 0 0 0 2px rgba(154,114,40,0.15);
+}
+
+.search-input::placeholder { color: #b8a882; font-style: italic; }
+
+.search-btn {
+background: var(–gold);
+border: none;
+border-radius: 2px;
+padding: 0 20px;
+cursor: pointer;
+font-family: ‘Cinzel’, serif;
+font-size: 11px;
+letter-spacing: 2px;
+color: var(–parchment);
+text-transform: uppercase;
+transition: background 0.2s;
+}
+.search-btn:hover { background: var(–gold-bright); }
+
+/* Result */
+.result-area { min-height: 80px; }
+
+.result-card {
+background: rgba(255,250,235,0.5);
+border: 1px solid var(–parchment-deep);
+border-radius: 2px;
+padding: 18px 22px;
+margin-bottom: 10px;
+animation: fadeIn 0.25s ease both;
+}
+
+.result-card:first-child { animation-delay: 0s; }
+.result-card:nth-child(2) { animation-delay: 0.05s; }
+.result-card:nth-child(3) { animation-delay: 0.1s; }
+.result-card:nth-child(4) { animation-delay: 0.15s; }
+.result-card:nth-child(5) { animation-delay: 0.2s; }
+.result-card:nth-child(n+6) { animation-delay: 0.25s; }
+
+.result-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; flex-wrap: wrap; }
+
+.result-word {
+font-family: ‘Cinzel’, serif;
+font-size: 22px;
+color: var(–gold);
+font-weight: 600;
+letter-spacing: 1px;
+}
+
+.result-pron {
+font-style: italic;
+color: var(–gold-dim);
+font-size: 14px;
+}
+
+.result-cat {
+margin-left: auto;
+font-family: ‘Cinzel’, serif;
+font-size: 9px;
+letter-spacing: 2px;
+text-transform: uppercase;
+color: var(–parchment-deep);
+background: rgba(154,114,40,0.12);
+padding: 2px 8px;
+border-radius: 2px;
+border: 1px solid rgba(154,114,40,0.2);
+}
+
+.result-def {
+font-size: 16px;
+color: #3a2810;
+line-height: 1.5;
+}
+
+.result-note {
+font-size: 13px;
+font-style: italic;
+color: #7a6040;
+margin-top: 3px;
+}
+
+/* No results */
+.no-result {
+text-align: center;
+padding: 30px;
+color: #9a8060;
+font-style: italic;
+font-size: 16px;
+animation: fadeIn 0.3s ease;
+}
+
+.no-result-ornament { font-size: 20px; color: var(–gold-dim); display: block; margin-bottom: 8px; opacity: 0.4; }
+
+/* Browse section */
+.browse-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 16px;
+flex-wrap: wrap;
+gap: 10px;
+}
+
+.browse-title {
+font-family: ‘Cinzel’, serif;
+font-size: 10px;
+letter-spacing: 3px;
+text-transform: uppercase;
+color: var(–gold-dim);
+}
+
+.filter-row {
+display: flex;
+gap: 6px;
+flex-wrap: wrap;
+}
+
+.filter-btn {
+font-family: ‘Cinzel’, serif;
+font-size: 8.5px;
+letter-spacing: 1.5px;
+padding: 4px 10px;
+border-radius: 2px;
+border: 1px solid var(–parchment-deep);
+background: transparent;
+color: var(–gold-dim);
+cursor: pointer;
+transition: all 0.15s;
+text-transform: uppercase;
+}
+.filter-btn:hover { border-color: var(–gold); color: var(–gold); }
+.filter-btn.active { background: var(–gold); color: var(–parchment); border-color: var(–gold); }
+
+/* Browse grid */
+.browse-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+gap: 6px;
+max-height: 460px;
+overflow-y: auto;
+padding-right: 4px;
+}
+
+.browse-grid::-webkit-scrollbar { width: 4px; }
+.browse-grid::-webkit-scrollbar-track { background: var(–parchment-dark); }
+.browse-grid::-webkit-scrollbar-thumb { background: var(–gold-dim); border-radius: 2px; }
+
+.browse-entry {
+background: rgba(255,250,235,0.4);
+border: 1px solid rgba(212,192,154,0.6);
+border-radius: 2px;
+padding: 8px 11px;
+cursor: pointer;
+transition: all 0.15s;
+}
+
+.browse-entry:hover {
+background: rgba(255,250,235,0.8);
+border-color: var(–gold);
+transform: translateY(-1px);
+box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.be-word { font-family: ‘Cinzel’, serif; font-size: 13px; color: var(–gold); display: block; }
+.be-def  { font-size: 12px; color: #5a4030; margin-top: 1px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Phrase mode */
+.phrase-section { margin-bottom: 20px; }
+.phrase-title {
+font-family: ‘Cinzel’, serif;
+font-size: 9px;
+letter-spacing: 3px;
+text-transform: uppercase;
+color: var(–gold-dim);
+border-bottom: 1px solid var(–parchment-deep);
+padding-bottom: 5px;
+margin-bottom: 10px;
+}
+
+.phrase-row {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 6px;
+margin-bottom: 5px;
+padding: 7px 10px;
+background: rgba(255,250,235,0.4);
+border: 1px solid rgba(212,192,154,0.5);
+border-radius: 2px;
+cursor: pointer;
+transition: all 0.15s;
+}
+.phrase-row:hover { background: rgba(255,250,235,0.8); border-color: var(–gold); }
+.pr-sc { font-family: ‘Cinzel’, serif; font-size: 12px; color: var(–gold); }
+.pr-pron { font-size: 10.5px; font-style: italic; color: var(–gold-dim); display: block; }
+.pr-en  { font-size: 12.5px; color: #3a2810; }
+
+/* Count badge */
+.count-badge {
+font-family: ‘Cinzel’, serif;
+font-size: 9px;
+color: var(–gold-dim);
+letter-spacing: 1px;
+margin-top: 10px;
+text-align: right;
+}
+
+/* Animations */
+@keyframes fadeDown {
+from { opacity: 0; transform: translateY(-16px); }
+to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeUp {
+from { opacity: 0; transform: translateY(16px); }
+to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(4px); }
+to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Mode panels */
+.mode-panel { display: none; }
+.mode-panel.active { display: block; }
+
+/* Footer */
+.footer {
+text-align: center;
+margin-top: 24px;
+font-style: italic;
+color: rgba(212,192,154,0.4);
+font-size: 12px;
+letter-spacing: 2px;
+animation: fadeUp 0.8s ease 0.3s both;
+}
+
+/* Tooltip on click */
+.copied-flash {
+position: fixed;
+bottom: 30px;
+left: 50%;
+transform: translateX(-50%);
+background: var(–gold);
+color: var(–parchment);
+padding: 8px 20px;
+border-radius: 2px;
+font-family: ‘Cinzel’, serif;
+font-size: 11px;
+letter-spacing: 2px;
+pointer-events: none;
+opacity: 0;
+transition: opacity 0.3s;
+z-index: 100;
+}
+.copied-flash.show { opacity: 1; }
+</style>
+
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="header-ornament">✦ ✦ ✦</div>
+    <h1>Shou-Chiang</h1>
+    <div class="header-sub">Complete Language Translator · 250+ Entries</div>
+    <div class="header-line"></div>
+  </div>
+
+  <div class="card">
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="switchMode('search')">Translate</button>
+      <button class="mode-tab" onclick="switchMode('browse')">Browse</button>
+      <button class="mode-tab" onclick="switchMode('phrases')">Phrases</button>
+    </div>
+
+```
+<!-- SEARCH MODE -->
+<div class="mode-panel active" id="mode-search">
+  <div class="search-area">
+    <label class="search-label" for="searchInput">Search English or Shou-Chiang</label>
+    <div class="search-row">
+      <input type="text" id="searchInput" class="search-input" placeholder="e.g. hope, devotion, ael, morthi…" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="search-btn" onclick="doSearch()">Seek</button>
+    </div>
+  </div>
+  <div class="result-area" id="searchResults">
+    <div class="no-result" style="padding-top:10px;">
+      <span class="no-result-ornament">✦</span>
+      Enter a word to begin your search — in English or Shou-Chiang.
+    </div>
+  </div>
+</div>
+
+<!-- BROWSE MODE -->
+<div class="mode-panel" id="mode-browse">
+  <div class="browse-header">
+    <span class="browse-title">All Entries</span>
+    <div class="filter-row" id="filterRow"></div>
+  </div>
+  <div class="browse-grid" id="browseGrid"></div>
+  <div class="count-badge" id="browseCount"></div>
+</div>
+
+<!-- PHRASES MODE -->
+<div class="mode-panel" id="mode-phrases">
+  <div id="phraseContent"></div>
+</div>
+```
+
+  </div>
+
+  <div class="footer">Ael'Virel lorath — Bloom Eternal, Always</div>
+</div>
+
+<div class="copied-flash" id="copiedFlash">Copied to clipboard</div>
+
+<script>
+// ══════════════════════════════════════════
+// FULL DICTIONARY DATA
+// ══════════════════════════════════════════
+const DICT = [
+  // NATURE & WORLD
+  {sc:"ael", pron:"ah-ell", en:"bloom", cat:"Nature"},
+  {sc:"aela", pron:"ah-ell-ah", en:"flowering", cat:"Nature"},
+  {sc:"vora", pron:"voh-rah", en:"forest", cat:"Nature"},
+  {sc:"shiang", pron:"shee-ahng", en:"wind", cat:"Nature"},
+  {sc:"tovar", pron:"toh-var", en:"river", cat:"Nature"},
+  {sc:"mirel", pron:"mee-rell", en:"moonlight", cat:"Nature"},
+  {sc:"kaien", pron:"kah-ee-en", en:"sacred soil", cat:"Nature"},
+  {sc:"zul", pron:"tsul", en:"star", cat:"Nature"},
+  {sc:"zulae", pron:"tsu-lah-eh", en:"constellation", cat:"Nature"},
+
+  // EMOTION & ABSTRACT
+  {sc:"saela", pron:"sah-eh-lah", en:"hope", cat:"Emotion"},
+  {sc:"nyra", pron:"nee-rah", en:"sorrow", cat:"Emotion"},
+  {sc:"virel", pron:"vee-rell", en:"devotion", cat:"Emotion"},
+  {sc:"kaesh", pron:"kah-esh", en:"destiny", cat:"Emotion"},
+  {sc:"thora", pron:"thor-ah", en:"strength", cat:"Emotion"},
+  {sc:"xiara", pron:"shee-ah-rah", en:"grace", cat:"Emotion"},
+  {sc:"vaeri", pron:"vah-eh-ree", en:"loyalty", cat:"Emotion"},
+  {sc:"qirel", pron:"kwih-rell", en:"truth", cat:"Emotion"},
+
+  // TITLES & PEOPLE
+  {sc:"adora", pron:"ah-doh-rah", en:"beloved / chosen bloom", cat:"Titles"},
+  {sc:"velari", pron:"veh-lah-ree", en:"guardian noble", cat:"Titles"},
+  {sc:"cireth", pron:"kee-reth", en:"oath-sworn", cat:"Titles"},
+  {sc:"maevor", pron:"may-vor", en:"high lady", cat:"Titles"},
+  {sc:"shenai", pron:"sheh-nye", en:"spirit-bound", cat:"Titles"},
+  {sc:"loren", pron:"loh-ren", en:"protector", cat:"Titles"},
+  {sc:"valen", pron:"vah-len", en:"ruler by right", cat:"Titles"},
+  {sc:"kaevorn", pron:"kah-eh-vorn", en:"warlord / battle-leader", cat:"Titles"},
+  {sc:"xethrin", pron:"sheth-rin", en:"avenger", cat:"Titles"},
+  {sc:"vaelitha", pron:"vah-ell-ith-ah", en:"mage / sacred wielder", cat:"Titles"},
+  {sc:"shorveth", pron:"shor-veth", en:"swordmaster", cat:"Titles"},
+  {sc:"morthaen", pron:"mor-thah-en", en:"bringer of ruin / destroyer", cat:"Titles"},
+  {sc:"ael'loren", pron:"ah-ell loh-ren", en:"Bloom-Protector", cat:"Titles"},
+  {sc:"zul'valen", pron:"tsul vah-len", en:"Star-Ruler", cat:"Titles"},
+  {sc:"mirel'maevor", pron:"mee-rell may-vor", en:"Moon-Lady / night sovereign", cat:"Titles"},
+  {sc:"shiang'velari", pron:"shee-ahng veh-lah-ree", en:"Wind-Noble", cat:"Titles"},
+  {sc:"kaien'cireth", pron:"kah-ee-en kee-reth", en:"Earth-Sworn", cat:"Titles"},
+  {sc:"taer'kaevorn", pron:"tah-er kah-eh-vorn", en:"Fire-Warlord", cat:"Titles"},
+  {sc:"vaelitha'maevor", pron:"vah-ell-ith-ah may-vor", en:"Mage-Lady", cat:"Titles"},
+  {sc:"shenai'loren", pron:"sheh-nye loh-ren", en:"Spirit-Protector", cat:"Titles"},
+
+  // CONFLICT & POWER
+  {sc:"drae", pron:"drah-eh", en:"blood", cat:"Conflict"},
+  {sc:"kavor", pron:"kah-vor", en:"war", cat:"Conflict"},
+  {sc:"shorin", pron:"sho-rin", en:"blade / sword", cat:"Conflict"},
+  {sc:"varosh", pron:"vah-rosh", en:"exile", cat:"Conflict"},
+  {sc:"zelaan", pron:"tseh-lahn", en:"fallen one", cat:"Conflict"},
+  {sc:"morthi", pron:"mor-thee", en:"ruin", cat:"Conflict"},
+  {sc:"xethra", pron:"sheth-rah", en:"vengeance", cat:"Conflict"},
+  {sc:"lorkaen", pron:"lor-kah-en", en:"shield / protection", cat:"Conflict"},
+  {sc:"draevael", pron:"drah-eh-vah-ell", en:"bloodright / power by blood", cat:"Conflict"},
+  {sc:"thoran", pron:"thor-an", en:"fortress / stronghold", cat:"Conflict"},
+  {sc:"drenath", pron:"dren-ath", en:"conquest", cat:"Conflict"},
+  {sc:"varoshan", pron:"vah-roh-shan", en:"the exiled ones / outcasts", cat:"Conflict"},
+  {sc:"qirvael", pron:"kwih-rvah-ell", en:"truth-weapon / undeniable proof", cat:"Conflict"},
+
+  // BODY & SELF
+  {sc:"nael", pron:"nah-ell", en:"eye", cat:"Body"},
+  {sc:"naelin", pron:"nah-ell-in", en:"eyes", cat:"Body"},
+  {sc:"sorel", pron:"soh-rell", en:"hand", cat:"Body"},
+  {sc:"sorin", pron:"soh-rin", en:"hands", cat:"Body"},
+  {sc:"veth", pron:"veth", en:"heart", cat:"Body"},
+  {sc:"vethari", pron:"veth-ah-ree", en:"heartfelt / of the heart", cat:"Body"},
+  {sc:"miren", pron:"mee-ren", en:"breath", cat:"Body"},
+  {sc:"tiren", pron:"tee-ren", en:"voice", cat:"Body"},
+  {sc:"tirael", pron:"tee-rah-ell", en:"singing / song-voice", cat:"Body"},
+  {sc:"doran", pron:"doh-ran", en:"mind", cat:"Body"},
+  {sc:"dorael", pron:"doh-rah-ell", en:"thought / idea", cat:"Body"},
+  {sc:"kaen", pron:"kah-en", en:"bone", cat:"Body"},
+  {sc:"shael", pron:"shah-ell", en:"skin / surface", cat:"Body"},
+  {sc:"xorel", pron:"shoh-rell", en:"hair", cat:"Body"},
+  {sc:"zoren", pron:"tsoh-ren", en:"pulse / vein", cat:"Body"},
+  {sc:"viran", pron:"vee-ran", en:"spirit / inner self", cat:"Body"},
+  {sc:"viranae", pron:"vee-rah-nah-eh", en:"one's true spirit", cat:"Body"},
+
+  // FAMILY & RELATIONSHIPS
+  {sc:"maera", pron:"mah-eh-rah", en:"mother", cat:"Family"},
+  {sc:"taeron", pron:"tah-eh-ron", en:"father", cat:"Family"},
+  {sc:"aerin", pron:"ah-eh-rin", en:"child / young one", cat:"Family"},
+  {sc:"aerith", pron:"ah-eh-rith", en:"children", cat:"Family"},
+  {sc:"selan", pron:"seh-lan", en:"sister", cat:"Family"},
+  {sc:"selanae", pron:"seh-lah-nah-eh", en:"elder sister", cat:"Family"},
+  {sc:"doven", pron:"doh-ven", en:"brother", cat:"Family"},
+  {sc:"doveth", pron:"doh-veth", en:"brotherhood / bond", cat:"Family"},
+  {sc:"oria", pron:"oh-ree-ah", en:"beloved / partner", cat:"Family"},
+  {sc:"oriael", pron:"oh-ree-ah-ell", en:"soulmate", cat:"Family"},
+  {sc:"lioren", pron:"lee-oh-ren", en:"close friend / trusted one", cat:"Family"},
+  {sc:"liorin", pron:"lee-oh-rin", en:"circle of trusted friends", cat:"Family"},
+  {sc:"kael", pron:"kah-ell", en:"kin / clan", cat:"Family"},
+  {sc:"kaelith", pron:"kah-ell-ith", en:"kinship / family bond", cat:"Family"},
+  {sc:"nori", pron:"noh-ree", en:"elder / ancestor", cat:"Family"},
+  {sc:"norith", pron:"noh-rith", en:"the ancestors", cat:"Family"},
+  {sc:"vori", pron:"voh-ree", en:"stranger / outsider", cat:"Family"},
+
+  // TIME & SEASONS
+  {sc:"ora", pron:"oh-rah", en:"dawn", cat:"Time"},
+  {sc:"oraen", pron:"oh-rah-en", en:"morning", cat:"Time"},
+  {sc:"tira", pron:"tee-rah", en:"midday", cat:"Time"},
+  {sc:"naelor", pron:"nah-ell-or", en:"dusk", cat:"Time"},
+  {sc:"zulora", pron:"tsul-oh-rah", en:"starlit night", cat:"Time"},
+  {sc:"aeron", pron:"ah-eh-ron", en:"spring / blooming season", cat:"Time"},
+  {sc:"vaelon", pron:"vah-ell-on", en:"summer", cat:"Time"},
+  {sc:"xoreth", pron:"shoh-reth", en:"autumn / the turning", cat:"Time"},
+  {sc:"korveth", pron:"kor-veth", en:"winter / the long dark", cat:"Time"},
+  {sc:"tirel", pron:"tee-rell", en:"a moment", cat:"Time"},
+  {sc:"tirelan", pron:"tee-rell-an", en:"an age / long era", cat:"Time"},
+  {sc:"soral", pron:"soh-ral", en:"yesterday", cat:"Time"},
+  {sc:"oranal", pron:"oh-rah-nal", en:"tomorrow", cat:"Time"},
+  {sc:"renael", pron:"ren-ah-ell", en:"now / this moment", cat:"Time"},
+  {sc:"lorath", pron:"loh-rath", en:"always / eternal", cat:"Time"},
+  {sc:"vaelen", pron:"vah-eh-len", en:"never", cat:"Time"},
+  {sc:"morath", pron:"moh-rath", en:"soon / coming", cat:"Time"},
+
+  // SKY, WEATHER & ELEMENTS
+  {sc:"aen", pron:"ah-en", en:"light / radiance", cat:"Elements"},
+  {sc:"aenor", pron:"ah-en-or", en:"the sun", cat:"Elements"},
+  {sc:"sorath", pron:"soh-rath", en:"storm", cat:"Elements"},
+  {sc:"lirel", pron:"lee-rell", en:"rain", cat:"Elements"},
+  {sc:"korel", pron:"koh-rell", en:"ice / frozen", cat:"Elements"},
+  {sc:"korvael", pron:"kor-vah-ell", en:"frost", cat:"Elements"},
+  {sc:"taer", pron:"tah-er", en:"fire", cat:"Elements"},
+  {sc:"taerith", pron:"tah-er-ith", en:"flames", cat:"Elements"},
+  {sc:"vaen", pron:"vah-en", en:"smoke / mist", cat:"Elements"},
+  {sc:"vaenor", pron:"vah-en-or", en:"thick fog / shroud", cat:"Elements"},
+  {sc:"doren", pron:"doh-ren", en:"earth / ground", cat:"Elements"},
+  {sc:"xael", pron:"shah-ell", en:"shadow / shade", cat:"Elements"},
+  {sc:"xaelith", pron:"shah-ell-ith", en:"deep darkness", cat:"Elements"},
+  {sc:"mirael", pron:"mee-rah-ell", en:"beam of light", cat:"Elements"},
+  {sc:"zulveth", pron:"tsul-veth", en:"moonless void / darkness", cat:"Elements"},
+
+  // ANIMALS
+  {sc:"lorveth", pron:"lor-veth", en:"wolf", cat:"Creatures"},
+  {sc:"lorvael", pron:"lor-vah-ell", en:"great wolf / dire wolf", cat:"Creatures"},
+  {sc:"sorvael", pron:"sor-vah-ell", en:"hawk / hunter-bird", cat:"Creatures"},
+  {sc:"naelor", pron:"nah-ell-or", en:"deer / gentle creature", cat:"Creatures"},
+  {sc:"virelith", pron:"vee-rell-ith", en:"loyal hound", cat:"Creatures"},
+  {sc:"kaenith", pron:"kah-en-ith", en:"serpent", cat:"Creatures"},
+  {sc:"zulvith", pron:"tsul-vith", en:"moth / creature of starlight", cat:"Creatures"},
+  {sc:"aelith", pron:"ah-ell-ith", en:"butterfly", cat:"Creatures"},
+  {sc:"torvael", pron:"tor-vah-ell", en:"river-serpent", cat:"Creatures"},
+  {sc:"dorveth", pron:"dor-veth", en:"boar / earth-beast", cat:"Creatures"},
+
+  // FOOD & SUSTENANCE
+  {sc:"soraen", pron:"soh-rah-en", en:"meal / feast", cat:"Food"},
+  {sc:"mirath", pron:"mee-rath", en:"water (sacred)", cat:"Food"},
+  {sc:"daen", pron:"dah-en", en:"fruit", cat:"Food"},
+  {sc:"vorath", pron:"voh-rath", en:"herbs / forest plants", cat:"Food"},
+  {sc:"vorathael", pron:"voh-rath-ah-ell", en:"healing herb", cat:"Food"},
+  {sc:"taerael", pron:"tah-er-ah-ell", en:"cooked food", cat:"Food"},
+  {sc:"liren", pron:"lee-ren", en:"wine", cat:"Food"},
+  {sc:"lireth", pron:"lee-reth", en:"sharing of drink / a toast", cat:"Food"},
+  {sc:"koren", pron:"koh-ren", en:"salt / preservation", cat:"Food"},
+
+  // HOME & SHELTER
+  {sc:"dorvael", pron:"dor-vah-ell", en:"home / dwelling", cat:"Home"},
+  {sc:"dorvaelith", pron:"dor-vah-ell-ith", en:"homeland", cat:"Home"},
+  {sc:"sorveth", pron:"sor-veth", en:"door / threshold", cat:"Home"},
+  {sc:"noren", pron:"noh-ren", en:"wall / boundary", cat:"Home"},
+  {sc:"ziran", pron:"tsee-ran", en:"window / opening to light", cat:"Home"},
+  {sc:"tiraeth", pron:"tee-rah-eth", en:"hearth / fire-center of home", cat:"Home"},
+  {sc:"vaelan", pron:"vah-ell-an", en:"garden / bloom-space", cat:"Home"},
+  {sc:"toran", pron:"toh-ran", en:"bridge", cat:"Home"},
+  {sc:"xirel", pron:"shee-rell", en:"tower / high place", cat:"Home"},
+  {sc:"xireth", pron:"shee-reth", en:"throne room", cat:"Home"},
+  {sc:"thoranae", pron:"thor-an-ah-eh", en:"great fortress / seat of power", cat:"Home"},
+
+  // MAGIC & SACRED
+  {sc:"vael", pron:"vah-ell", en:"sacred / divine essence", cat:"Magic"},
+  {sc:"vaelith", pron:"vah-ell-ith", en:"the sacred arts / magic", cat:"Magic"},
+  {sc:"zulvael", pron:"tsul-vah-ell", en:"starlight magic / celestial power", cat:"Magic"},
+  {sc:"aenvael", pron:"ah-en-vah-ell", en:"light-weaving / solar magic", cat:"Magic"},
+  {sc:"xaelvael", pron:"shah-ell-vah-ell", en:"shadow-weaving / dark arts", cat:"Magic"},
+  {sc:"tiraen", pron:"tee-rah-en", en:"prophecy", cat:"Magic"},
+  {sc:"loraen", pron:"loh-rah-en", en:"ancient rite / old ceremony", cat:"Magic"},
+  {sc:"loraenith", pron:"loh-rah-en-ith", en:"the old ways / sacred traditions", cat:"Magic"},
+  {sc:"shenaith", pron:"sheh-nye-th", en:"spirit-touched / blessed", cat:"Magic"},
+  {sc:"kaienvael", pron:"kah-ee-en-vah-ell", en:"earth-magic", cat:"Magic"},
+  {sc:"cirel", pron:"kee-rell", en:"oath / sacred vow", cat:"Magic"},
+  {sc:"ciraeth", pron:"kee-rah-eth", en:"oath-bound / sworn forever", cat:"Magic"},
+  {sc:"mirelvael", pron:"mee-rell-vah-ell", en:"moonmagic / lunar power", cat:"Magic"},
+  {sc:"saevira", pron:"sah-eh-vee-rah", en:"vow jewel / bond adornment", cat:"Magic"},
+  {sc:"Ael'Virel", pron:"ah-ell vee-rell", en:"Bloom Eternal (Everbloom motto)", cat:"Magic"},
+  {sc:"Vael'Aela", pron:"vah-ell ah-ell-ah", en:"House of the Unfading Flower", cat:"Magic"},
+
+  // COLORS
+  {sc:"aenvel", pron:"ah-en-vell", en:"golden / sun-colored", cat:"Colors"},
+  {sc:"zulvael", pron:"tsul-vah-ell", en:"silver / star-colored", cat:"Colors"},
+  {sc:"korvael", pron:"kor-vah-ell", en:"white / frost-pale", cat:"Colors"},
+  {sc:"taervel", pron:"tah-er-vell", en:"crimson / fire-red", cat:"Colors"},
+  {sc:"vorael", pron:"voh-rah-ell", en:"deep green / forest-green", cat:"Colors"},
+  {sc:"lirelael", pron:"lee-rell-ah-ell", en:"pale blue / rain-sky", cat:"Colors"},
+  {sc:"drenael", pron:"dren-ah-ell", en:"grey / stone-hued", cat:"Colors"},
+  {sc:"aelvel", pron:"ah-ell-vell", en:"rose / bloom-pink", cat:"Colors"},
+  {sc:"mirelael", pron:"mee-rell-ah-ell", en:"silver-blue / moonlit", cat:"Colors"},
+  {sc:"dorenvel", pron:"doh-ren-vell", en:"brown / earth-toned", cat:"Colors"},
+
+  // PRONOUNS
+  {sc:"ei", pron:"eh-ee", en:"I / me (intimate)", cat:"Pronouns"},
+  {sc:"eia", pron:"eh-ee-ah", en:"I (formal)", cat:"Pronouns"},
+  {sc:"vel", pron:"vell", en:"you (familiar)", cat:"Pronouns"},
+  {sc:"velae", pron:"vell-ah-eh", en:"you (formal)", cat:"Pronouns"},
+  {sc:"shen", pron:"shen", en:"he / she / they (singular neutral)", cat:"Pronouns"},
+  {sc:"shena", pron:"sheh-nah", en:"she", cat:"Pronouns"},
+  {sc:"sheno", pron:"sheh-noh", en:"he", cat:"Pronouns"},
+  {sc:"eiren", pron:"eh-ee-ren", en:"we (inclusive — you and I)", cat:"Pronouns"},
+  {sc:"eirath", pron:"eh-ee-rath", en:"we (exclusive — my group)", cat:"Pronouns"},
+  {sc:"velin", pron:"vell-in", en:"you all (plural)", cat:"Pronouns"},
+  {sc:"shenin", pron:"sheh-nin", en:"they (plural)", cat:"Pronouns"},
+  {sc:"eiae", pron:"eh-ee-ah-eh", en:"my / mine", cat:"Pronouns"},
+  {sc:"shenae", pron:"sheh-nah-eh", en:"her / his / their", cat:"Pronouns"},
+  {sc:"eirael", pron:"eh-ee-rah-ell", en:"our / ours", cat:"Pronouns"},
+
+  // QUESTION WORDS
+  {sc:"shi", pron:"shee", en:"what / which", cat:"Grammar"},
+  {sc:"dren", pron:"dren", en:"where / which way", cat:"Grammar"},
+  {sc:"shiven", pron:"shee-ven", en:"who", cat:"Grammar"},
+  {sc:"shiora", pron:"shee-oh-rah", en:"when", cat:"Grammar"},
+  {sc:"shivael", pron:"shee-vah-ell", en:"how", cat:"Grammar"},
+  {sc:"shikaesh", pron:"shee-kah-esh", en:"why / because", cat:"Grammar"},
+  {sc:"shidren", pron:"shee-dren", en:"which direction", cat:"Grammar"},
+  {sc:"ae", pron:"ah-eh", en:"of / belonging to (possessive)", cat:"Grammar"},
+  {sc:"aen", pron:"ah-en", en:"and / with", cat:"Grammar"},
+  {sc:"va", pron:"vah", en:"no / not (negation)", cat:"Grammar"},
+  {sc:"ai", pron:"eye", en:"yes / so be it", cat:"Grammar"},
+  {sc:"oren", pron:"oh-ren", en:"truly? / is it so?", cat:"Grammar"},
+  {sc:"daith", pron:"dah-ith", en:"without / nor", cat:"Grammar"},
+  {sc:"lorvae", pron:"lor-vah-eh", en:"both…and…", cat:"Grammar"},
+  {sc:"eivael", pron:"eh-ee-vah-ell", en:"either…or…", cat:"Grammar"},
+  {sc:"vaenith", pron:"vah-en-ith", en:"although / even though", cat:"Grammar"},
+  {sc:"renith", pron:"ren-ith", en:"if / when (conditional)", cat:"Grammar"},
+  {sc:"sorith", pron:"sor-ith", en:"unless", cat:"Grammar"},
+  {sc:"dorith", pron:"doh-rith", en:"therefore / thus", cat:"Grammar"},
+  {sc:"eithora", pron:"eh-ee-thor-ah", en:"nevertheless / even so", cat:"Grammar"},
+  {sc:"norvae", pron:"nor-vah-eh", en:"meanwhile / still", cat:"Grammar"},
+
+  // CORE VERBS
+  {sc:"oran", pron:"oh-ran", en:"to be / to exist", cat:"Verbs"},
+  {sc:"naen", pron:"nah-en", en:"to become / to transform", cat:"Verbs"},
+  {sc:"renae", pron:"ren-ah-eh", en:"to come / to arrive", cat:"Verbs"},
+  {sc:"sorvae", pron:"sor-vah-eh", en:"to go / to depart", cat:"Verbs"},
+  {sc:"vorin", pron:"voh-rin", en:"to return", cat:"Verbs"},
+  {sc:"voran", pron:"voh-ran", en:"to have / to hold", cat:"Verbs"},
+  {sc:"daenith", pron:"dah-en-ith", en:"to give / to offer", cat:"Verbs"},
+  {sc:"sorveth", pron:"sor-veth", en:"to take / to claim", cat:"Verbs"},
+  {sc:"kaelan", pron:"kah-ell-an", en:"to receive / to accept", cat:"Verbs"},
+  {sc:"naelith", pron:"nah-ell-ith", en:"to see / to look", cat:"Verbs"},
+  {sc:"tirenith", pron:"tee-ren-ith", en:"to hear / to listen", cat:"Verbs"},
+  {sc:"doranith", pron:"doh-ran-ith", en:"to know / to understand", cat:"Verbs"},
+  {sc:"viran", pron:"vee-ran", en:"to feel (spiritually)", cat:"Verbs"},
+  {sc:"saelith", pron:"sah-ell-ith", en:"to want / to desire", cat:"Verbs"},
+  {sc:"mireth", pron:"mee-reth", en:"to need", cat:"Verbs"},
+  {sc:"saen", pron:"sah-en", en:"to speak / to say", cat:"Verbs"},
+  {sc:"qiraen", pron:"kwih-rah-en", en:"to ask / to question", cat:"Verbs"},
+  {sc:"vaerith", pron:"vah-eh-rith", en:"to answer / to respond", cat:"Verbs"},
+  {sc:"oriael", pron:"oh-ree-ah-ell", en:"to love / to cherish", cat:"Verbs"},
+  {sc:"lioreth", pron:"lee-oh-reth", en:"to trust", cat:"Verbs"},
+  {sc:"xaelith", pron:"shah-ell-ith", en:"to hate", cat:"Verbs"},
+  {sc:"vaelith", pron:"vah-ell-ith", en:"to make / to create", cat:"Verbs"},
+  {sc:"morthaen", pron:"mor-thah-en", en:"to destroy", cat:"Verbs"},
+  {sc:"uren", pron:"oo-ren", en:"to live", cat:"Verbs"},
+  {sc:"zelaeth", pron:"tseh-lah-eth", en:"to fall / to die", cat:"Verbs"},
+  {sc:"korveth", pron:"kor-veth", en:"to endure / to survive", cat:"Verbs"},
+  {sc:"drenith", pron:"dren-ith", en:"to wander / to roam", cat:"Verbs"},
+  {sc:"taelith", pron:"tah-ell-ith", en:"to follow", cat:"Verbs"},
+  {sc:"xirel", pron:"shee-rell", en:"to rise / to ascend", cat:"Verbs"},
+
+  // ADJECTIVES
+  {sc:"orael", pron:"oh-rah-ell", en:"bright / good / luminous", cat:"Adjectives"},
+  {sc:"velith", pron:"vell-ith", en:"large / great / noble", cat:"Adjectives"},
+  {sc:"lioran", pron:"lee-oh-ran", en:"small / gentle / soft", cat:"Adjectives"},
+  {sc:"taeran", pron:"tah-er-an", en:"warm / passionate", cat:"Adjectives"},
+  {sc:"korith", pron:"koh-rith", en:"cold / distant", cat:"Adjectives"},
+  {sc:"qiran", pron:"kwih-ran", en:"true / honest / clear", cat:"Adjectives"},
+  {sc:"vaenith", pron:"vah-en-ith", en:"false / hidden / veiled", cat:"Adjectives"},
+  {sc:"draeth", pron:"drah-eth", en:"heavy / burdened", cat:"Adjectives"},
+  {sc:"dorath", pron:"doh-rath", en:"deep / profound", cat:"Adjectives"},
+  {sc:"thora", pron:"thor-ah", en:"strong / powerful", cat:"Adjectives"},
+  {sc:"nyra", pron:"nee-rah", en:"weak / sorrowful", cat:"Adjectives"},
+  {sc:"zelaan", pron:"tseh-lahn", en:"dead / fallen", cat:"Adjectives"},
+  {sc:"uren", pron:"oo-ren", en:"alive / living", cat:"Adjectives"},
+
+  // NUMBERS
+  {sc:"ti", pron:"tee", en:"one (1)", cat:"Numbers"},
+  {sc:"ren", pron:"ren", en:"two (2)", cat:"Numbers"},
+  {sc:"xaln", pron:"shahln", en:"three (3)", cat:"Numbers"},
+  {sc:"mora", pron:"moh-rah", en:"four (4)", cat:"Numbers"},
+  {sc:"vel", pron:"vell", en:"five (5)", cat:"Numbers"},
+  {sc:"xael", pron:"shah-ell", en:"six (6)", cat:"Numbers"},
+  {sc:"naeven", pron:"nah-eh-ven", en:"seven (7)", cat:"Numbers"},
+  {sc:"sorel", pron:"soh-rell", en:"eight (8)", cat:"Numbers"},
+  {sc:"tivael", pron:"tee-vah-ell", en:"nine (9)", cat:"Numbers"},
+  {sc:"tora", pron:"toh-rah", en:"ten (10)", cat:"Numbers"},
+  {sc:"centar", pron:"sen-tar", en:"one hundred (100)", cat:"Numbers"},
+  {sc:"melor", pron:"meh-lor", en:"one thousand (1000)", cat:"Numbers"},
+];
+
+// ══════════════════════════════════════════
+// PHRASES DATA
+// ══════════════════════════════════════════
+const PHRASES = {
+  "Greetings & Partings": [
+    {sc:"Ael'virel.", pron:"ah-ell vee-rell", en:"Bloom eternal. (formal greeting)"},
+    {sc:"Saela vel.", pron:"sah-eh-lah vell", en:"Hope to you. (common greeting)"},
+    {sc:"Ora orael.", pron:"oh-rah oh-rah-ell", en:"Bright dawn. (morning greeting)"},
+    {sc:"Zul lorath aen.", pron:"tsul loh-rath ah-en", en:"Stars shine always. (parting blessing)"},
+    {sc:"Vorin orael.", pron:"voh-rin oh-rah-ell", en:"Return bright. (farewell)"},
+    {sc:"Kaelith ae saela.", pron:"kah-ell-ith ah-eh sah-eh-lah", en:"Within the hope of kinship. (Everbloom greeting)"},
+  ],
+  "Love & Devotion": [
+    {sc:"Ei oriael vel, lorath.", pron:"eh-ee oh-ree-ah-ell vell, loh-rath", en:"I love you, always."},
+    {sc:"Eiae veth doranitheth vel lorath.", pron:"eh-ee-ah-eh veth doh-ran-ith-eth vell loh-rath", en:"My heart has always known you."},
+    {sc:"Ei mireth vel.", pron:"eh-ee mee-reth vell", en:"I need you."},
+    {sc:"Vel oran eiae oria.", pron:"vell oh-ran eh-ee-ah-eh oh-ree-ah", en:"You are my beloved."},
+    {sc:"Saevira ae vel oran eiae.", pron:"sah-eh-vee-rah ah-eh vell oh-ran eh-ee-ah-eh", en:"Your vow jewel is mine."},
+    {sc:"Eiren oriaeleth lorath.", pron:"eh-ee-ren oh-ree-ah-el-eth loh-rath", en:"We loved each other always."},
+  ],
+  "Oaths & Ceremony": [
+    {sc:"Lorvae thora, lorvae xiara.", pron:"lor-vah-eh thor-ah, lor-vah-eh shee-ah-rah", en:"Both strength and grace."},
+    {sc:"Ael vel lorath. Va morthaen. Va varosh.", pron:"ah-ell vell loh-rath", en:"Bloom for you always. Not destroyed. Not exiled."},
+    {sc:"Ei oriaelael vel lorath. Eithora. Eithora ren morthi.", pron:"...", en:"I will love you always. Even so. Even in ruin."},
+    {sc:"Xirel, Ael'Virel. Korvethan.", pron:"shee-rell, ah-ell vee-rell. kor-veth-an", en:"Rise, House Everbloom. Endure."},
+    {sc:"Dorith loraenith, eiren oran ciraeth.", pron:"doh-rith loh-rah-en-ith, eh-ee-ren oh-ran kee-rah-eth", en:"According to the old ways, we are bound."},
+  ],
+  "Conflict & Dark Speech": [
+    {sc:"Drae vel morthi.", pron:"drah-eh vell mor-thee", en:"Blood or ruin. (ultimatum)"},
+    {sc:"Vel oran varosh. Va vorinael.", pron:"vell oh-ran vah-rosh. vah voh-rin-ah-ell", en:"You are exiled. Do not return."},
+    {sc:"Shenin va vorinael.", pron:"sheh-nin vah voh-rin-ah-ell", en:"They will not return."},
+    {sc:"Daith saela, shiven oran eiren?", pron:"dah-ith sah-eh-lah, shee-ven oh-ran eh-ee-ren", en:"Without hope, what are we?"},
+    {sc:"Zelaeth daith nyra. Uren daith kaen.", pron:"tseh-lah-eth dah-ith nee-rah. oo-ren dah-ith kah-en", en:"Fell without sorrow. Lived without surrender."},
+  ],
+  "Commands & Survival": [
+    {sc:"Korvethan. Eiren xiraelael.", pron:"kor-veth-an. eh-ee-ren shee-rah-ell-ah-ell", en:"Endure. We will rise."},
+    {sc:"Tirenithan. Ei saen qirel.", pron:"tee-ren-ith-an. eh-ee sah-en kwih-rell", en:"Listen. I speak truth."},
+    {sc:"Renaen dorvael.", pron:"ren-ah-en dor-vah-ell", en:"Come home."},
+    {sc:"Urenan. Ren oran shi ei qiraen.", pron:"oo-ren-an", en:"Live. That is all I ask."},
+    {sc:"Naelithan eiae.", pron:"nah-ell-ith-an eh-ee-ah-eh", en:"Look at me."},
+  ],
+  "Inner Voice & Reflection": [
+    {sc:"Ei viraneth shi. Va saela. Va renael. Veth shi.", pron:"...", en:"I felt something. Not hope. Not yet. But something."},
+    {sc:"Daith shena, shiven ei oran? Va loren. Va norvae.", pron:"...", en:"Without her, what am I? Not a protector. Not anymore."},
+    {sc:"Morthi sareth vorae tirelan, veth norvae eiren doranithora.", pron:"...", en:"The forest fell long ago, yet still we remember."},
+    {sc:"Nyra drae. Saela xirel.", pron:"nee-rah drah-eh. sah-eh-lah shee-rell", en:"Sorrow bleeds. Hope rises."},
+    {sc:"Kaesh lorath.", pron:"kah-esh loh-rath", en:"Destiny is eternal."},
+  ],
+};
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let currentMode = 'search';
+let currentFilter = 'All';
+
+// ══════════════════════════════════════════
+// SEARCH
+// ══════════════════════════════════════════
+function normalise(s) {
+  return s.toLowerCase().replace(/[''']/g, "'").trim();
+}
+
+function doSearch() {
+  const q = normalise(document.getElementById('searchInput').value);
+  const resultsEl = document.getElementById('searchResults');
+  if (!q) {
+    resultsEl.innerHTML = `<div class="no-result"><span class="no-result-ornament">✦</span>Enter a word to begin your search.</div>`;
+    return;
+  }
+
+  const exact = [], startsWith = [], contains = [];
+
+  DICT.forEach(entry => {
+    const scN = normalise(entry.sc);
+    const enN = normalise(entry.en);
+    const enWords = enN.split(/[\s\/,]+/);
+
+    if (scN === q || enWords.some(w => w === q)) {
+      exact.push(entry);
+    } else if (scN.startsWith(q) || enWords.some(w => w.startsWith(q))) {
+      startsWith.push(entry);
+    } else if (scN.includes(q) || enN.includes(q)) {
+      contains.push(entry);
+    }
+  });
+
+  const results = [...exact, ...startsWith, ...contains];
+
+  if (!results.length) {
+    resultsEl.innerHTML = `<div class="no-result"><span class="no-result-ornament">✦</span>No entries found for "<em>${q}</em>".<br><span style="font-size:13px;opacity:0.7;">Try a different spelling, or browse the full dictionary.</span></div>`;
+    return;
+  }
+
+  resultsEl.innerHTML = results.slice(0, 12).map(e => renderResult(e)).join('');
+}
+
+function renderResult(e) {
+  return `<div class="result-card" onclick="copyText('${e.sc}')">
+    <div class="result-header">
+      <span class="result-word">${e.sc}</span>
+      <span class="result-pron">${e.pron}</span>
+      <span class="result-cat">${e.cat}</span>
+    </div>
+    <div class="result-def">${e.en}</div>
+  </div>`;
+}
+
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+
+document.getElementById('searchInput').addEventListener('input', e => {
+  if (!e.target.value) {
+    document.getElementById('searchResults').innerHTML = `<div class="no-result"><span class="no-result-ornament">✦</span>Enter a word to begin your search.</div>`;
+  }
+});
+
+// ══════════════════════════════════════════
+// BROWSE
+// ══════════════════════════════════════════
+function initBrowse() {
+  const cats = ['All', ...new Set(DICT.map(e => e.cat))];
+  const filterRow = document.getElementById('filterRow');
+  filterRow.innerHTML = cats.map(c =>
+    `<button class="filter-btn${c === 'All' ? ' active' : ''}" onclick="setFilter('${c}')">${c}</button>`
+  ).join('');
+  renderBrowse();
+}
+
+function setFilter(cat) {
+  currentFilter = cat;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.textContent === cat));
+  renderBrowse();
+}
+
+function renderBrowse() {
+  const entries = currentFilter === 'All' ? DICT : DICT.filter(e => e.cat === currentFilter);
+  document.getElementById('browseGrid').innerHTML = entries.map(e =>
+    `<div class="browse-entry" onclick="copyText('${e.sc}')">
+      <span class="be-word">${e.sc}</span>
+      <span class="be-def">${e.en}</span>
+    </div>`
+  ).join('');
+  document.getElementById('browseCount').textContent = `${entries.length} entries`;
+}
+
+// ══════════════════════════════════════════
+// PHRASES
+// ══════════════════════════════════════════
+function initPhrases() {
+  const el = document.getElementById('phraseContent');
+  el.innerHTML = Object.entries(PHRASES).map(([title, phrases]) =>
+    `<div class="phrase-section">
+      <div class="phrase-title">${title}</div>
+      ${phrases.map(p => `
+        <div class="phrase-row" onclick="copyText('${p.sc.replace(/'/g,"\\'")}')">
+          <div>
+            <span class="pr-sc">${p.sc}</span>
+            <span class="pr-pron">${p.pron}</span>
+          </div>
+          <div class="pr-en">${p.en}</div>
+        </div>`).join('')}
+    </div>`
+  ).join('');
+}
+
+// ══════════════════════════════════════════
+// MODE SWITCHING
+// ══════════════════════════════════════════
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`mode-${mode}`).classList.add('active');
+  document.querySelectorAll('.mode-tab').forEach(t => {
+    if (t.textContent.toLowerCase().includes(mode === 'search' ? 'trans' : mode)) t.classList.add('active');
+  });
+}
+
+// ══════════════════════════════════════════
+// COPY
+// ══════════════════════════════════════════
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const el = document.getElementById('copiedFlash');
+    el.textContent = `"${text}" copied`;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 1800);
+  }).catch(() => {});
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+initBrowse();
+initPhrases();
+</script>
+
+</body>
+</html>
